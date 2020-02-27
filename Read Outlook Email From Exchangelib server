@@ -1,0 +1,66 @@
+#Read Outlook Email 
+#Author - Arun Ramji S
+
+#Import Required Package
+import win32com.client ,datetime
+import pandas as pd
+
+#STEP-1
+
+#Establish connection with outlook server
+outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+folder = outlook.Folders("foldermail@xxx.com")
+inbox = folder.Folders("Inbox")
+msg = inbox.Items
+
+#Query only yesterday's mail data(today -1 )
+d = (datetime.date.today() - datetime.timedelta (days=1)).strftime("%d-%m-%y")
+d_= (datetime.date.today() - datetime.timedelta (days=2)).strftime("%d-%m-%y")
+date = (datetime.date.today()).strftime("%d-%m-%y")
+sj_lst = []
+dt_lst = []
+bd_lst = []
+for i in range(msg.count-1,0,-1):
+    if 'Undeliverable' not in msg[i].subject :
+        date = msg[i].SentOn.strftime("%d-%m-%y")
+        sjl = msg[i].Subject
+        body = msg[i].body
+        if date == d:
+            #print("Subject:     " + sjl + "     Date : ", date)
+            sj_lst.append(sjl)
+            dt_lst.append(date)
+            bd_lst.append(body)
+            df = pd.DataFrame({'Subject':sj_lst,'Date':dt_lst,'body':bd_lst})
+        elif date == d_:
+            break
+    #print(sj1)
+#df
+
+#Take only mail which has relevant subject line
+df_final = df[df['Subject'].str.contains('Scorecard Refresh') ]
+
+#STEP-2
+#FTP fetched email data as csv file to unix path
+
+from ftplib import * 
+from io import StringIO
+import io
+
+ftp = FTP(host='host.name.com')
+
+ftp.login(user='xxxx',passwd='yyyy')
+
+ftp.cwd('/dir/xxx/yyy')
+
+buffer = io.StringIO()
+
+df_final.to_csv(buffer)
+
+text = buffer.getvalue()
+
+bio = io.BytesIO(str.encode(text)) #binary conversion
+
+ftp.storbinary('STOR pthon.csv',bio) # Exporting as csv to directory 
+
+
+#DONE!
